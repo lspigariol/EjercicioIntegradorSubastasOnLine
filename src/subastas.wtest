@@ -7,8 +7,11 @@ describe "Tests de la subasta" {
 	var  comprador2 = new Usuario()
 
 	var pc = new Computacion()
+	var algo = new Articulo()
 	var subastaPC = new Subasta(pc,500,calendario.hoy(),vendedor) 
 	var otraSubastaPC = new Subasta(pc,100,calendario.hoy(),vendedor) 
+	var subastaEspecial = new SubastaRapida(algo,100,calendario.hoy(),vendedor,2) 
+	var subastaRapida = new SubastaRapida(algo,100,calendario.hoy(),vendedor,200) 
 	
 	fixture{
 		subastasOnLine.agregarSubasta(subastaPC)
@@ -65,5 +68,23 @@ describe "Tests de la subasta" {
 		assert.equals(500,subastasOnLine.precioPromedio(pc))
 	
 	}
-
+	test "SubastaEspecial de dos usuarios recibe oferta de usuarios con antiguedad y queda finalizada"{
+		comprador1.antiguedad(3)
+		subastaEspecial.recibirOfertaDe(comprador1,200)
+		subastaEspecial.recibirOfertaDe(comprador1,300)
+		assert.that(subastaEspecial.finalizada())
+	}
+	test "SubastaEspecial de dos usuarios recibe oferta de usuarios con compras anteriores y queda finalizada"{
+		subastaPC.recibirOfertaDe(comprador1,1000)
+		otraSubastaPC.recibirOfertaDe(comprador1,1000)
+		subastaEspecial.recibirOfertaDe(comprador1,200)
+		subastaEspecial.recibirOfertaDe(comprador1,300)
+		assert.that(subastaEspecial.finalizada())
+	}
+		
+	test "SubastaRapida recibe una oferta superior al monto a alcanzar y queda finalizada"{
+		subastaRapida.recibirOfertaDe(comprador1,200)
+		assert.that(subastaRapida.finalizada())
+	}
+	
 }

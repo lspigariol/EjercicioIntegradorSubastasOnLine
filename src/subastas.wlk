@@ -16,7 +16,6 @@ object subastaCerrada inherits Exception{
 
 object subastasOnLine {
 	var subastas = []
-	
 	method subastas() = subastas
 
 	method agregarSubasta(subasta){subastas.add(subasta)}
@@ -55,10 +54,15 @@ object subastasOnLine {
 				subasta.cerrada() &&
 				subasta.producto() == producto
 			}
+	method comproAnteriormente(usuario) {
+		return subastas.any{subasta=>usuario.esGanador(subasta)} 
+	}
 }
 
 class Usuario {
 	var deuda = 0
+	var antiguedad = 0
+	method antiguedad(anios){antiguedad = anios}
 	
 	method esGanador(subasta){
 		return 
@@ -72,7 +76,9 @@ class Usuario {
 	method aumentarDeuda(importe) {
 		deuda+=importe 
 	}
-
+	method experimentado() {
+		return antiguedad >2 and subastasOnLine.comproAnteriormente(self)
+	} 
 }
 
 
@@ -107,9 +113,10 @@ class Subasta {
 	method producto() = producto
 	method ofertas() = ofertas 
 	method recibirOfertaDe(usuario,monto){
-		if(!self.finalizada() and self.superaValor(monto))
+		if(self.esAceptable(usuario,monto))
 			ofertas.add(new Oferta(usuario,monto))
 	}
+	
 	method finalizada() {
 		return calendario.hoy() > fechaFinalizacion 
 	}
@@ -139,6 +146,40 @@ class Subasta {
 	}
 	method recibioOfertas() = not ofertas.isEmpty()
 	method oferentes() = ofertas.map{o=>o.usuario()}
+	method esAceptable(usuario, monto) = 
+		!self.finalizada() and self.superaValor(monto)
+	
+}
+
+class SubastaEspecial inherits Subasta{
+	var maximoOfertas
+	
+	constructor(_producto,_base,_fechaFinalizacion,_vendedor,_maximoOfertas) 
+		= super(_producto,_base,_fechaFinalizacion,_vendedor){
+			maximoOfertas = _maximoOfertas
+		}
+		
+	override method esAceptable(usuario, monto) 
+		= super(usuario, monto) && usuario.experimentado()
+	
+	override method finalizada() {
+		return super() or ofertas.size() >= maximoOfertas 
+	}
+}
+
+class SubastaRapida inherits Subasta{
+	var montoAlcanzar
+	
+	constructor(_producto,_base,_fechaFinalizacion,_vendedor,_montoAlcanzar) 
+		= super(_producto,_base,_fechaFinalizacion,_vendedor){
+			montoAlcanzar = _montoAlcanzar
+		}
+		
+	override method finalizada() 
+		= super() or self.seAlcanzoMonto() 
+	
+	method seAlcanzoMonto() 
+		= self.recibioOfertas()&& self.mejorOferta().monto() >= montoAlcanzar 
 }
 
 
