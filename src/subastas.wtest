@@ -1,0 +1,69 @@
+import subastas.*
+
+describe "Tests de la subasta" {
+
+	var  vendedor = new Usuario()
+	var  comprador1 = new Usuario()
+	var  comprador2 = new Usuario()
+
+	var pc = new Computacion()
+	var subastaPC = new Subasta(pc,500,calendario.hoy(),vendedor) 
+	var otraSubastaPC = new Subasta(pc,100,calendario.hoy(),vendedor) 
+	
+	fixture{
+		subastasOnLine.agregarSubasta(subastaPC)
+		subastasOnLine.agregarSubasta(otraSubastaPC)
+		
+	}
+	test "Si la primera oferta no supera el monto base, no recibio ofertas"{
+		subastaPC.recibirOfertaDe(comprador2,200)
+		assert.notThat(subastaPC.recibioOfertas())
+	}
+	test "Si la primera oferta supera el monto base, se recibieron ofertas" {
+		subastaPC.recibirOfertaDe(comprador1,600)
+		assert.that(subastaPC.recibioOfertas())
+	}
+	test "Al recibir la primera oferta, el mejor valor es el unico oferta" {
+		subastaPC.recibirOfertaDe(comprador1,600)
+		assert.equals(600,subastaPC.mejorOferta().monto())
+	}
+	test "Una subasta que finaliza hoy, si pasa un dia queda finalizada" {
+		calendario.pasarUnDia()
+		assert.that(subastaPC.finalizada())
+		}	
+	test "La subasta recibe una sola oferta superior al precio base, se finaliza y es la ganadora" {
+		subastaPC.recibirOfertaDe(comprador1,600)
+		calendario.pasarUnDia()
+		assert.that(comprador1.esGanador(subastaPC))
+	}
+	test "Una subasta con una oferta, recibe otra que no supera el monto y no la registra" {
+		subastaPC.recibirOfertaDe(comprador1,600)
+		subastaPC.recibirOfertaDe(comprador2,600)
+		assert.equals(comprador1,subastaPC.mejorOferta().usuario())
+	}
+	test "Una subasta con una oferta, recibe otra de monto mayor y la registra" {
+		subastaPC.recibirOfertaDe(comprador1,600)
+		subastaPC.recibirOfertaDe(comprador2,601)
+		assert.equals(comprador2,subastaPC.mejorOferta().usuario())
+	}
+	test "Un usuario hizo una unica oferta que fue superada y es looser " {
+		subastaPC.recibirOfertaDe(comprador1,600)
+		subastaPC.recibirOfertaDe(comprador2,601)
+		assert.equals(comprador1.esLooser())
+	}
+	test "Conjunto de oferentes de subasta con dos ofertas" {
+		subastaPC.recibirOfertaDe(comprador1,600)
+		subastaPC.recibirOfertaDe(comprador2,601)
+		assert.equals([comprador1,comprador2],subastaPC.oferentes())
+	
+	}
+	test "Promedio de venta de pc" {
+		subastaPC.recibirOfertaDe(comprador1,600)
+		subastaPC.cerrar()
+		otraSubastaPC.recibirOfertaDe(comprador1,400)
+		otraSubastaPC.cerrar()
+		assert.equals(500,subastasOnLine.precioPromedio(pc))
+	
+	}
+
+}
